@@ -4,6 +4,8 @@ InputApp          = DELLO_Input;
 obj.Anat          = InputApp.MRIFile;
 obj.PostCT        = InputApp.CTFile;
 obj.ElectrodeInfo = InputApp.ElectrodeInfo;
+obj.CoregMethod   = InputApp.CoregMethod;
+
 R1 = obj.ElectrodeInfo(:,1);
 R2 = obj.ElectrodeInfo(:,2);
 
@@ -18,4 +20,3 @@ obj.ElectrodeInfo = T;
 InputApp.delete;
 
 end
-
