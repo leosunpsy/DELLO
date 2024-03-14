@@ -1,14 +1,43 @@
 function obj = getPrep(obj)
 %GETPREP Prepare the MRI and post CT images
+if strcmp(obj.CoregMethod,'spm_coreg')  
+    MRI = spm_vol(obj.Anat);
+    postCT = spm_vol(obj.PostCT);
+    % Move the CT to the 3DT1 space: spm evaluate
+    x = spm_coreg(MRI,postCT);
+    M  = spm_matrix(x);
+    MM = zeros(4,4,numel(postCT));
+    MM = spm_get_space(postCT.fname);
+    spm_get_space(postCT.fname, M\MM(:,:));
+else 
+    fprintf('\n')
+    fprintf('%-40s %30s\n','ANTS: ants.registration',spm('time'));
+    fprintf('%s\n', repmat('=', 1, 72));
+    ants = py.importlib.import_module('ants');
+    MRI = ants.image_read(obj.Anat);
+    postCT = ants.image_read(obj.PostCT);
+    mytx = ants.registration(fixed=MRI,moving=postCT,type_of_transform='Rigid');
+    ants.image_write(mytx{'warpedmovout'}, obj.PostCT)    
+    fprintf('%-40s: %30s\n','Completed',spm('time'));
+end
 
-MRI = spm_vol(obj.Anat);
-postCT = spm_vol(obj.PostCT);
-% Move the CT to the 3DT1 space: spm evaluate
-x = spm_coreg(MRI,postCT);
-M  = spm_matrix(x);
-MM = zeros(4,4,numel(postCT));
-MM = spm_get_space(postCT.fname);
-spm_get_space(postCT.fname, M\MM(:,:));
+% Display the aligned MRI and CT images
+MRIVolume = medicalVolume(obj.Anat);
+CTVolume = medicalVolume(obj.PostCT);
+MRIVoxels = MRIVolume.Voxels;
+CTVoxels = CTVolume.Voxels;
+centerMRI  = MRIVolume.VolumeGeometry.VolumeSize/2;
+centerCT = CTVolume.VolumeGeometry.VolumeSize/2;
+figure('Name','Registed MRI and CT images');
+subplot(131);
+imshowpair(squeeze(CTVoxels(:,:,centerCT(3))), squeeze(MRIVoxels(:,:,centerMRI(3))))
+axis off
+subplot(132);
+imshowpair(squeeze(CTVoxels(:,centerCT(2),:)), squeeze(MRIVoxels(:,centerMRI(2),:)))
+axis off
+subplot(133);
+imshowpair(squeeze(CTVoxels(centerCT(1),:,:)), squeeze(MRIVoxels(centerMRI(1),:,:)))
+axis off
 
 % Reslice the MRI to the CT
 P = {obj.PostCT;obj.Anat};
@@ -27,7 +56,7 @@ job.channel.vols = {[pwd, filesep, TargVol.name]};
 spmPath = fileparts(which('spm.m'));
 
 for i = 1:6
-    job.tissue(i).tpm = {[spmPath, filesep, 'tpm\TPM.nii,',num2str(i)]};
+    job.tissue(i).tpm = {[spmPath, filesep, 'tpm', filesep, 'TPM.nii,',num2str(i)]};
 end
 
 spm_preproc_run(job)
@@ -64,4 +93,3 @@ GSCMskFillInfo.Description = [];
 niftiwrite(uint8(GWCMskFill),'BrainMask.nii',GSCMskFillInfo)
 
 end
-
