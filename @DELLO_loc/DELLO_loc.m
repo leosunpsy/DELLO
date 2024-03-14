@@ -7,6 +7,7 @@ classdef DELLO_loc < handle
         Anat
         PostCT
         ElectrodeInfo
+        CoregMethod
         
         % Parameters
         CTthresh % Percent
@@ -35,9 +36,7 @@ classdef DELLO_loc < handle
             spm('defaults', 'PET');
             % Parameters
             obj.CTthresh = 96;
-        end
-        
+        end        
 
     end
 end
-
